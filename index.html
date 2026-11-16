@@ -1,0 +1,1553 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Night Shift</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #050609;
+    color: #d9e2e8;
+    font-family: "Courier New", monospace;
+    overflow: hidden;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+}
+
+#game {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    cursor: crosshair;
+}
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(3, 5, 10, 0.94);
+    text-align: center;
+    padding: 20px;
+    overflow-y: auto;
+}
+
+.panel {
+    width: 100%;
+    max-width: 520px;
+    padding: 30px;
+    border: 2px solid #35505b;
+    background: #101820;
+    box-shadow: 0 0 35px rgba(0, 220, 180, 0.12);
+}
+
+h1 {
+    color: #5fffd2;
+    font-size: clamp(36px, 7vw, 64px);
+    margin: 0 0 10px;
+    letter-spacing: 5px;
+    text-shadow: 0 0 15px #00b995;
+}
+
+h2 {
+    color: #5fffd2;
+    font-size: 26px;
+    margin-top: 0;
+}
+
+.subtitle {
+    color: #9aabb5;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+.instructions {
+    color: #d3e3e7;
+    line-height: 2;
+    margin: 20px 0;
+    font-size: 14px;
+}
+
+.credits {
+    margin-top: 18px;
+    color: #8ca2a8;
+    font-size: 12px;
+}
+
+button {
+    padding: 14px 35px;
+    border: 1px solid #5fffd2;
+    background: #0a4c43;
+    color: white;
+    font-family: inherit;
+    font-weight: bold;
+    font-size: 16px;
+    cursor: pointer;
+    letter-spacing: 2px;
+}
+
+button:hover {
+    background: #087b68;
+    box-shadow: 0 0 15px #00b995;
+}
+
+.note {
+    margin-top: 20px;
+    font-size: 11px;
+    color: #71858c;
+}
+
+#pause-message {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 5;
+    background: rgba(0, 0, 0, 0.7);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+    color: #5fffd2;
+    font-size: 20px;
+    text-shadow: 0 0 10px #00b995;
+}
+
+#result-details {
+    margin: 25px 0;
+    line-height: 2.2;
+    color: #d3e3e7;
+}
+
+.result-label {
+    color: #5fffd2;
+}
+
+#result-screen {
+    display: none;
+}
+
+/* Mobile-screen notice */
+#mobile-message {
+    display: none;
+    position: fixed;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 20;
+    padding: 10px 12px;
+    background: rgba(16, 24, 32, 0.95);
+    border: 1px solid #5fffd2;
+    color: #d3e3e7;
+    font-size: 11px;
+    line-height: 1.5;
+    text-align: center;
+    pointer-events: none;
+}
+
+@media (max-width: 700px) {
+    #mobile-message {
+        display: block;
+    }
+
+    .panel {
+        padding: 20px;
+    }
+
+    .instructions {
+        font-size: 12px;
+    }
+}
+
+@media (max-height: 500px) {
+    .panel {
+        padding: 15px;
+    }
+
+    h1 {
+        font-size: 36px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div id="game-container">
+    <canvas id="game" width="640" height="400"></canvas>
+</div>
+
+<!-- START SCREEN -->
+<div id="start-screen" class="overlay">
+    <div class="panel">
+        <h1>NIGHT SHIFT</h1>
+
+        <div class="subtitle">
+            SECURITY ROBOT SYSTEM // NIGHT OPERATION<br>
+            MALFUNCTIONING DRONES DETECTED
+        </div>
+
+        <div class="instructions">
+            WASD - Move<br>
+            MOUSE - Look / Turn<br>
+            LEFT CLICK - Shoot<br>
+            ESC - Release Mouse
+        </div>
+
+        <button id="start-button">START GAME</button>
+
+        <div class="note">
+            OBJECTIVE: SHUT DOWN ALL 8 DRONES<br>
+            SURVIVE FOR FOUR MINUTES
+        </div>
+
+        <div class="credits">
+            Made by joshuadablo, with help from AI.
+        </div>
+    </div>
+</div>
+
+<!-- PAUSE MESSAGE -->
+<div id="pause-message">
+    PAUSED<br>
+    <small>Click the game to resume</small>
+</div>
+
+<!-- RESULT SCREEN -->
+<div id="result-screen" class="overlay">
+    <div class="panel">
+        <h2 id="result-title">VICTORY</h2>
+
+        <div class="subtitle" id="result-subtitle">
+            MISSION COMPLETE
+        </div>
+
+        <div id="result-reason"></div>
+
+        <div id="result-details"></div>
+
+        <button id="restart-button">PLAY AGAIN</button>
+
+        <div class="note">
+            NIGHT SHIFT // SECURITY ROBOT SYSTEM
+        </div>
+
+        <div class="credits">
+            Made by joshuadablo, with help from AI.
+        </div>
+    </div>
+</div>
+
+<!-- MOBILE MESSAGE -->
+<div id="mobile-message">
+    Best on a computer! This game is designed for keyboard and mouse.
+</div>
+
+<script>
+"use strict";
+
+// ==========================================
+// 1. CANVAS AND ELEMENTS
+// ==========================================
+
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const WIDTH = canvas.width;
+const HEIGHT = canvas.height;
+
+const startScreen = document.getElementById("start-screen");
+const startButton = document.getElementById("start-button");
+
+const pauseMessage = document.getElementById("pause-message");
+
+const resultScreen = document.getElementById("result-screen");
+const resultTitle = document.getElementById("result-title");
+const resultSubtitle = document.getElementById("result-subtitle");
+const resultReason = document.getElementById("result-reason");
+const resultDetails = document.getElementById("result-details");
+const restartButton = document.getElementById("restart-button");
+
+// ==========================================
+// 2. GAME SETTINGS
+// ==========================================
+
+const FOV = Math.PI / 3;
+const HALF_FOV = FOV / 2;
+
+const MAX_DISTANCE = 20;
+
+const PLAYER_SPEED = 2.8;
+const ROTATION_SPEED = 2.2;
+
+const STARTING_BATTERY = 100;
+const DAMAGE_AMOUNT = 10;
+
+const ROUND_DURATION = 240;
+
+// ==========================================
+// 2.1. WEB AUDIO SOUND EFFECTS
+// ==========================================
+
+let audioContext = null;
+
+function initializeAudio() {
+    try {
+        if (!audioContext) {
+            const AudioContextClass =
+                window.AudioContext || window.webkitAudioContext;
+
+            if (!AudioContextClass) return;
+
+            audioContext = new AudioContextClass();
+        }
+
+        if (audioContext.state === "suspended") {
+            audioContext.resume();
+        }
+    } catch (error) {
+        console.warn("Audio could not be initialized:", error);
+    }
+}
+
+function playShootSound() {
+    if (!audioContext) return;
+
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        const now = audioContext.currentTime;
+
+        oscillator.type = "sawtooth";
+
+        oscillator.frequency.setValueAtTime(520, now);
+        oscillator.frequency.exponentialRampToValueAtTime(
+            160,
+            now + 0.10
+        );
+
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + 0.10
+        );
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.11);
+
+    } catch (error) {
+        console.warn("Shoot sound could not play:", error);
+    }
+}
+
+function playHitSound() {
+    if (!audioContext) return;
+
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        const now = audioContext.currentTime;
+
+        oscillator.type = "square";
+
+        oscillator.frequency.setValueAtTime(260, now);
+        oscillator.frequency.exponentialRampToValueAtTime(
+            75,
+            now + 0.13
+        );
+
+        gain.gain.setValueAtTime(0.10, now);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + 0.13
+        );
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.14);
+
+    } catch (error) {
+        console.warn("Hit sound could not play:", error);
+    }
+}
+
+function playGameOverSound() {
+    if (!audioContext) return;
+
+    try {
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+
+        const now = audioContext.currentTime;
+
+        oscillator.type = "triangle";
+
+        oscillator.frequency.setValueAtTime(440, now);
+        oscillator.frequency.exponentialRampToValueAtTime(
+            110,
+            now + 0.55
+        );
+
+        gain.gain.setValueAtTime(0.13, now);
+        gain.gain.setValueAtTime(0.13, now + 0.10);
+        gain.gain.exponentialRampToValueAtTime(
+            0.001,
+            now + 0.60
+        );
+
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+
+        oscillator.start(now);
+        oscillator.stop(now + 0.61);
+
+    } catch (error) {
+        console.warn("Game over sound could not play:", error);
+    }
+}
+
+// ==========================================
+// 3. GAME STATE
+// ==========================================
+
+let gameState = "start";
+// Possible states: start, playing, finished
+
+let gameStarted = false;
+
+let battery = STARTING_BATTERY;
+let timeRemaining = ROUND_DURATION;
+
+let eliminatedDrones = 0;
+
+let elapsedTime = 0;
+let damageCooldown = 0;
+
+let lastTime = 0;
+let muzzleFlash = 0;
+
+// Hit feedback timers
+let hitFlashTimer = 0;
+let hitTextTimer = 0;
+let hitShakeTimer = 0;
+
+const keys = {};
+
+const mouseSensitivity = 0.0025;
+
+// ==========================================
+// 4. OFFICE MAP
+// ==========================================
+
+const map = [
+    "1111111111111111",
+    "1000000000000001",
+    "1011100101110101",
+    "1000100000010001",
+    "1010101111011101",
+    "1000100000000001",
+    "1011101011100101",
+    "1000001000000101",
+    "1110101110100101",
+    "1000100000100001",
+    "1011101110111101",
+    "1000000000000001",
+    "1011100101110101",
+    "1000000000000001",
+    "1000000000000001",
+    "1111111111111111"
+];
+
+const MAP_WIDTH = map[0].length;
+const MAP_HEIGHT = map.length;
+
+// ==========================================
+// 5. PLAYER
+// ==========================================
+
+const player = {
+    x: 1.5,
+    y: 1.5,
+    angle: 0,
+    radius: 0.20
+};
+
+// ==========================================
+// 6. DRONES
+// ==========================================
+
+const initialDronePositions = [
+    { x: 5.5, y: 1.5 },
+    { x: 10.5, y: 1.5 },
+    { x: 13.5, y: 3.5 },
+    { x: 5.5, y: 5.5 },
+    { x: 12.5, y: 7.5 },
+    { x: 3.5, y: 9.5 },
+    { x: 8.5, y: 11.5 },
+    { x: 13.5, y: 13.5 }
+];
+
+let drones = [];
+
+function createDrones() {
+    drones = initialDronePositions.map((position, index) => ({
+        id: index,
+        x: position.x,
+        y: position.y,
+        angle: Math.random() * Math.PI * 2,
+        speed: 0.65 + Math.random() * 0.2,
+        state: "wander",
+        wanderTimer: Math.random() * 3,
+        alive: true
+    }));
+}
+
+// ==========================================
+// 7. MAP COLLISION
+// ==========================================
+
+function isWall(x, y) {
+    const mapX = Math.floor(x);
+    const mapY = Math.floor(y);
+
+    if (
+        mapX < 0 ||
+        mapY < 0 ||
+        mapX >= MAP_WIDTH ||
+        mapY >= MAP_HEIGHT
+    ) {
+        return true;
+    }
+
+    return map[mapY][mapX] === "1";
+}
+
+function canMove(x, y, radius) {
+    return (
+        !isWall(x - radius, y - radius) &&
+        !isWall(x + radius, y - radius) &&
+        !isWall(x - radius, y + radius) &&
+        !isWall(x + radius, y + radius)
+    );
+}
+
+// ==========================================
+// 8. PLAYER MOVEMENT
+// ==========================================
+
+function updatePlayer(deltaTime) {
+    let moveX = 0;
+    let moveY = 0;
+
+    if (keys["w"] || keys["arrowup"]) {
+        moveX += Math.cos(player.angle);
+        moveY += Math.sin(player.angle);
+    }
+
+    if (keys["s"] || keys["arrowdown"]) {
+        moveX -= Math.cos(player.angle);
+        moveY -= Math.sin(player.angle);
+    }
+
+    if (keys["a"]) {
+        moveX += Math.cos(player.angle - Math.PI / 2);
+        moveY += Math.sin(player.angle - Math.PI / 2);
+    }
+
+    if (keys["d"]) {
+        moveX += Math.cos(player.angle + Math.PI / 2);
+        moveY += Math.sin(player.angle + Math.PI / 2);
+    }
+
+    const length = Math.hypot(moveX, moveY);
+
+    if (length > 0) {
+        moveX /= length;
+        moveY /= length;
+    }
+
+    const distance = PLAYER_SPEED * deltaTime;
+
+    const nextX = player.x + moveX * distance;
+    const nextY = player.y + moveY * distance;
+
+    if (canMove(nextX, player.y, player.radius)) {
+        player.x = nextX;
+    }
+
+    if (canMove(player.x, nextY, player.radius)) {
+        player.y = nextY;
+    }
+}
+
+// ==========================================
+// 9. RAYCASTING ENGINE
+// ==========================================
+
+const zBuffer = new Array(WIDTH).fill(MAX_DISTANCE);
+
+function castRay(angle) {
+    const rayDirX = Math.cos(angle);
+    const rayDirY = Math.sin(angle);
+
+    let mapX = Math.floor(player.x);
+    let mapY = Math.floor(player.y);
+
+    const deltaDistX = Math.abs(1 / (rayDirX || 0.000001));
+    const deltaDistY = Math.abs(1 / (rayDirY || 0.000001));
+
+    let stepX;
+    let stepY;
+
+    let sideDistX;
+    let sideDistY;
+
+    if (rayDirX < 0) {
+        stepX = -1;
+        sideDistX = (player.x - mapX) * deltaDistX;
+    } else {
+        stepX = 1;
+        sideDistX = (mapX + 1 - player.x) * deltaDistX;
+    }
+
+    if (rayDirY < 0) {
+        stepY = -1;
+        sideDistY = (player.y - mapY) * deltaDistY;
+    } else {
+        stepY = 1;
+        sideDistY = (mapY + 1 - player.y) * deltaDistY;
+    }
+
+    let hit = false;
+    let side = 0;
+    let distance = MAX_DISTANCE;
+
+    for (let i = 0; i < 64; i++) {
+        if (sideDistX < sideDistY) {
+            sideDistX += deltaDistX;
+            mapX += stepX;
+            side = 0;
+        } else {
+            sideDistY += deltaDistY;
+            mapY += stepY;
+            side = 1;
+        }
+
+        if (
+            mapX < 0 ||
+            mapY < 0 ||
+            mapX >= MAP_WIDTH ||
+            mapY >= MAP_HEIGHT
+        ) {
+            hit = true;
+            break;
+        }
+
+        if (map[mapY][mapX] === "1") {
+            hit = true;
+            break;
+        }
+    }
+
+    if (hit) {
+        distance = side === 0
+            ? sideDistX - deltaDistX
+            : sideDistY - deltaDistY;
+    }
+
+    return {
+        distance: Math.max(0.001, Math.min(distance, MAX_DISTANCE)),
+        side
+    };
+}
+
+// ==========================================
+// 10. DRAW ENVIRONMENT
+// ==========================================
+
+function drawEnvironment() {
+    ctx.fillStyle = "#10151b";
+    ctx.fillRect(0, 0, WIDTH, HEIGHT / 2);
+
+    ctx.fillStyle = "#24272b";
+    ctx.fillRect(0, HEIGHT / 2, WIDTH, HEIGHT / 2);
+
+    for (let y = HEIGHT / 2; y < HEIGHT; y += 4) {
+        const darkness = 1 - (y - HEIGHT / 2) / HEIGHT;
+
+        ctx.fillStyle = `rgba(0,0,0,${darkness * 0.55})`;
+        ctx.fillRect(0, y, WIDTH, 4);
+    }
+
+    for (let x = 0; x < WIDTH; x++) {
+        const rayAngle =
+            player.angle - HALF_FOV + (x / WIDTH) * FOV;
+
+        const ray = castRay(rayAngle);
+
+        const correctedDistance =
+            ray.distance * Math.cos(rayAngle - player.angle);
+
+        zBuffer[x] = correctedDistance;
+
+        const wallHeight = Math.min(
+            HEIGHT * 2,
+            HEIGHT / Math.max(0.01, correctedDistance)
+        );
+
+        const wallTop = (HEIGHT - wallHeight) / 2;
+
+        const brightness = Math.max(
+            18,
+            175 - correctedDistance * 17
+        );
+
+        const sideShade = ray.side === 1 ? 0.68 : 1;
+
+        const r = Math.floor(75 * sideShade * brightness / 175);
+        const g = Math.floor(120 * sideShade * brightness / 175);
+        const b = Math.floor(125 * sideShade * brightness / 175);
+
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+        ctx.fillRect(x, wallTop, 1, wallHeight);
+
+        if (x % 32 === 0) {
+            ctx.fillStyle = "rgba(0,0,0,0.18)";
+            ctx.fillRect(x, wallTop, 2, wallHeight);
+        }
+    }
+}
+
+// ==========================================
+// 11. LINE OF SIGHT
+// ==========================================
+
+function hasLineOfSight(x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+
+    const distance = Math.hypot(dx, dy);
+    const steps = Math.ceil(distance * 12);
+
+    for (let i = 1; i < steps; i++) {
+        const t = i / steps;
+
+        if (isWall(x1 + dx * t, y1 + dy * t)) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// ==========================================
+// 12. DRONE MOVEMENT
+// ==========================================
+
+function moveDrone(drone, dx, dy) {
+    const radius = 0.18;
+
+    const nextX = drone.x + dx;
+    const nextY = drone.y + dy;
+
+    if (canMove(nextX, drone.y, radius)) {
+        drone.x = nextX;
+    } else {
+        drone.angle += Math.PI * (0.5 + Math.random());
+    }
+
+    if (canMove(drone.x, nextY, radius)) {
+        drone.y = nextY;
+    } else {
+        drone.angle += Math.PI * (0.5 + Math.random());
+    }
+}
+
+// ==========================================
+// 13. BATTERY AND COLLISION SYSTEM
+// ==========================================
+
+function updateBattery(deltaTime) {
+    if (damageCooldown > 0) {
+        damageCooldown -= deltaTime;
+    }
+
+    for (const drone of drones) {
+        if (!drone.alive) continue;
+
+        const distance = Math.hypot(
+            player.x - drone.x,
+            player.y - drone.y
+        );
+
+        if (distance < 0.48 && damageCooldown <= 0) {
+            battery = Math.max(0, battery - DAMAGE_AMOUNT);
+
+            damageCooldown = 1.0;
+
+            if (battery <= 0) {
+                endGame("defeat", "Your battery has been depleted.");
+                return;
+            }
+
+            break;
+        }
+    }
+}
+
+// ==========================================
+// 14. DRONE AI
+// ==========================================
+
+function updateDrones(deltaTime) {
+    for (const drone of drones) {
+        if (!drone.alive) continue;
+
+        const dx = player.x - drone.x;
+        const dy = player.y - drone.y;
+
+        const distance = Math.hypot(dx, dy);
+
+        const canSeePlayer =
+            distance < 7 &&
+            hasLineOfSight(
+                drone.x,
+                drone.y,
+                player.x,
+                player.y
+            );
+
+        if (canSeePlayer) {
+            drone.state = "chase";
+        } else {
+            drone.state = "wander";
+        }
+
+        if (drone.state === "chase") {
+            drone.angle = Math.atan2(dy, dx);
+
+            const speed = drone.speed * 1.35;
+
+            moveDrone(
+                drone,
+                Math.cos(drone.angle) * speed * deltaTime,
+                Math.sin(drone.angle) * speed * deltaTime
+            );
+
+        } else {
+            drone.wanderTimer -= deltaTime;
+
+            if (drone.wanderTimer <= 0) {
+                drone.angle +=
+                    (Math.random() - 0.5) * Math.PI * 1.5;
+
+                drone.wanderTimer = 1.5 + Math.random() * 2;
+            }
+
+            const speed = drone.speed * 0.45;
+
+            moveDrone(
+                drone,
+                Math.cos(drone.angle) * speed * deltaTime,
+                Math.sin(drone.angle) * speed * deltaTime
+            );
+        }
+    }
+}
+
+// ==========================================
+// 15. DRAW DRONES
+// ==========================================
+
+function drawDrone(drone) {
+    if (!drone.alive) return;
+
+    const dx = drone.x - player.x;
+    const dy = drone.y - player.y;
+
+    const distance = Math.hypot(dx, dy);
+
+    const angleToDrone = Math.atan2(dy, dx);
+
+    let relativeAngle = angleToDrone - player.angle;
+
+    while (relativeAngle > Math.PI) relativeAngle -= Math.PI * 2;
+    while (relativeAngle < -Math.PI) relativeAngle += Math.PI * 2;
+
+    if (Math.abs(relativeAngle) > HALF_FOV + 0.2) return;
+
+    if (!hasLineOfSight(player.x, player.y, drone.x, drone.y)) {
+        return;
+    }
+
+    const screenX =
+        WIDTH / 2 + (relativeAngle / FOV) * WIDTH;
+
+    const size = Math.min(
+        150,
+        HEIGHT / Math.max(0.1, distance) * 0.65
+    );
+
+    const screenY = HEIGHT / 2 + size * 0.10;
+
+    const bufferIndex = Math.floor(screenX);
+
+    if (
+        bufferIndex < 0 ||
+        bufferIndex >= WIDTH ||
+        distance > zBuffer[bufferIndex]
+    ) {
+        return;
+    }
+
+    ctx.save();
+
+    ctx.translate(screenX, screenY);
+    ctx.scale(size / 75, size / 75);
+
+    ctx.fillStyle = "rgba(0,0,0,0.5)";
+    ctx.beginPath();
+    ctx.ellipse(0, 12, 29, 9, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#66747a";
+    ctx.fillRect(-22, -18, 44, 29);
+
+    ctx.fillStyle = "#28363c";
+    ctx.fillRect(-15, -25, 30, 9);
+
+    ctx.fillStyle = "#a3b0b1";
+    ctx.fillRect(-17, -12, 34, 4);
+
+    ctx.fillStyle = "#ff3030";
+    ctx.shadowColor = "#ff0000";
+    ctx.shadowBlur = 12;
+    ctx.fillRect(-6, -8, 12, 7);
+
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = "#8c9a9d";
+    ctx.fillRect(-29, 0, 8, 4);
+    ctx.fillRect(21, 0, 8, 4);
+
+    ctx.fillStyle = "#15191d";
+    ctx.fillRect(-18, 11, 10, 7);
+    ctx.fillRect(8, 11, 10, 7);
+
+    if (distance < 6) {
+        ctx.fillStyle = "#ff6969";
+        ctx.font = "bold 10px Courier New";
+        ctx.textAlign = "center";
+        ctx.fillText("DRONE", 0, -34);
+    }
+
+    ctx.restore();
+}
+
+// ==========================================
+// 16. SHOOTING SYSTEM
+// ==========================================
+
+function shoot() {
+    if (
+        gameState !== "playing" ||
+        document.pointerLockElement !== canvas
+    ) {
+        return;
+    }
+
+    playShootSound();
+
+    let target = null;
+    let closestDistance = Infinity;
+
+    for (const drone of drones) {
+        if (!drone.alive) continue;
+
+        const dx = drone.x - player.x;
+        const dy = drone.y - player.y;
+
+        const distance = Math.hypot(dx, dy);
+
+        if (distance > MAX_DISTANCE) continue;
+
+        let angle = Math.atan2(dy, dx) - player.angle;
+
+        while (angle > Math.PI) angle -= Math.PI * 2;
+        while (angle < -Math.PI) angle += Math.PI * 2;
+
+        if (Math.abs(angle) > 0.075) continue;
+
+        if (!hasLineOfSight(
+            player.x,
+            player.y,
+            drone.x,
+            drone.y
+        )) {
+            continue;
+        }
+
+        if (distance < closestDistance) {
+            closestDistance = distance;
+            target = drone;
+        }
+    }
+
+    muzzleFlash = 0.09;
+
+    if (target) {
+        target.alive = false;
+        eliminatedDrones++;
+
+        playHitSound();
+
+        // Trigger hit feedback.
+        hitFlashTimer = 0.12;
+        hitTextTimer = 0.55;
+        hitShakeTimer = 0.18;
+
+        if (eliminatedDrones === 8) {
+            endGame("victory", "All eight malfunctioning drones have been shut down.");
+        }
+    }
+}
+
+// ==========================================
+// 17. GAME TIMER
+// ==========================================
+
+function updateTimer(deltaTime) {
+    timeRemaining = Math.max(0, timeRemaining - deltaTime);
+    elapsedTime = ROUND_DURATION - timeRemaining;
+
+    if (timeRemaining <= 0) {
+        endGame("defeat", "Time is up. The office was not cleared.");
+    }
+}
+
+function formatTime(seconds) {
+    const totalSeconds = Math.ceil(seconds);
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainingSeconds = totalSeconds % 60;
+
+    return (
+        String(minutes).padStart(2, "0") +
+        ":" +
+        String(remainingSeconds).padStart(2, "0")
+    );
+}
+
+function formatElapsedTime(seconds) {
+    const totalSeconds = Math.floor(seconds);
+
+    const minutes = Math.floor(totalSeconds / 60);
+    const remainingSeconds = totalSeconds % 60;
+
+    return minutes + "m " + remainingSeconds + "s";
+}
+
+// ==========================================
+// 18. HUD
+// ==========================================
+
+function drawHUD() {
+    const remaining = drones.filter(d => d.alive).length;
+
+    ctx.fillStyle = "rgba(0,0,0,0.75)";
+    ctx.fillRect(12, 12, 230, 104);
+
+    ctx.strokeStyle = "#42616a";
+    ctx.strokeRect(12, 12, 230, 104);
+
+    ctx.textAlign = "left";
+
+    ctx.fillStyle = "#5fffd2";
+    ctx.font = "bold 13px Courier New";
+    ctx.fillText("NIGHT SHIFT // SECURITY", 23, 31);
+
+    ctx.fillStyle = "#e1eeee";
+    ctx.font = "12px Courier New";
+
+    ctx.fillText("DRONES LEFT: " + remaining + "/8", 23, 53);
+
+    ctx.fillStyle = "#e1eeee";
+    ctx.fillText("BATTERY: " + battery + "%", 23, 76);
+
+    ctx.fillStyle = "#27373a";
+    ctx.fillRect(23, 85, 195, 12);
+
+    const batteryColor =
+        battery <= 30 ? "#ff4545" :
+        battery <= 60 ? "#ffbd45" :
+        "#5fffd2";
+
+    ctx.fillStyle = batteryColor;
+    ctx.fillRect(23, 85, 195 * (battery / 100), 12);
+
+    ctx.fillStyle = "rgba(0,0,0,0.75)";
+    ctx.fillRect(WIDTH - 145, 12, 133, 42);
+
+    ctx.strokeStyle = "#42616a";
+    ctx.strokeRect(WIDTH - 145, 12, 133, 42);
+
+    ctx.textAlign = "center";
+
+    ctx.fillStyle = timeRemaining <= 30 ? "#ff5555" : "#5fffd2";
+    ctx.font = "bold 19px Courier New";
+
+    ctx.fillText(
+        formatTime(timeRemaining),
+        WIDTH - 78,
+        40
+    );
+
+    ctx.strokeStyle = "#5fffd2";
+    ctx.lineWidth = 2;
+
+    ctx.beginPath();
+
+    ctx.moveTo(WIDTH / 2 - 10, HEIGHT / 2);
+    ctx.lineTo(WIDTH / 2 - 3, HEIGHT / 2);
+
+    ctx.moveTo(WIDTH / 2 + 3, HEIGHT / 2);
+    ctx.lineTo(WIDTH / 2 + 10, HEIGHT / 2);
+
+    ctx.moveTo(WIDTH / 2, HEIGHT / 2 - 10);
+    ctx.lineTo(WIDTH / 2, HEIGHT / 2 - 3);
+
+    ctx.moveTo(WIDTH / 2, HEIGHT / 2 + 3);
+    ctx.lineTo(WIDTH / 2, HEIGHT / 2 + 10);
+
+    ctx.stroke();
+
+    if (muzzleFlash > 0) {
+        ctx.fillStyle = "rgba(255,220,120,0.75)";
+
+        ctx.beginPath();
+
+        ctx.arc(
+            WIDTH / 2,
+            HEIGHT / 2,
+            15 + Math.random() * 8,
+            0,
+            Math.PI * 2
+        );
+
+        ctx.fill();
+    }
+
+    ctx.fillStyle = "rgba(0,0,0,0.65)";
+    ctx.fillRect(12, HEIGHT - 36, 250, 24);
+
+    ctx.fillStyle = "#9bafb5";
+    ctx.font = "11px Courier New";
+    ctx.textAlign = "left";
+
+    ctx.fillText(
+        "WASD: MOVE | MOUSE: LOOK | CLICK: SHOOT",
+        20,
+        HEIGHT - 20
+    );
+}
+
+// ==========================================
+// 19. SCREEN EFFECTS
+// ==========================================
+
+function drawScreenEffects() {
+    const gradient = ctx.createRadialGradient(
+        WIDTH / 2,
+        HEIGHT / 2,
+        HEIGHT * 0.12,
+        WIDTH / 2,
+        HEIGHT / 2,
+        HEIGHT * 0.75
+    );
+
+    gradient.addColorStop(0, "rgba(0,0,0,0)");
+    gradient.addColorStop(1, "rgba(0,0,0,0.55)");
+
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+    ctx.fillStyle = "rgba(0,0,0,0.10)";
+
+    for (let y = 0; y < HEIGHT; y += 3) {
+        ctx.fillRect(0, y, WIDTH, 1);
+    }
+}
+
+// ==========================================
+// 19.1. HIT FEEDBACK
+// ==========================================
+
+function updateHitFeedback(deltaTime) {
+    if (hitFlashTimer > 0) {
+        hitFlashTimer = Math.max(0, hitFlashTimer - deltaTime);
+    }
+
+    if (hitTextTimer > 0) {
+        hitTextTimer = Math.max(0, hitTextTimer - deltaTime);
+    }
+
+    if (hitShakeTimer > 0) {
+        hitShakeTimer = Math.max(0, hitShakeTimer - deltaTime);
+    }
+}
+
+function drawHitFeedback() {
+    // Brief screen flash.
+    if (hitFlashTimer > 0) {
+        const alpha = (hitFlashTimer / 0.12) * 0.28;
+
+        ctx.fillStyle = `rgba(95, 255, 210, ${alpha})`;
+        ctx.fillRect(0, 0, WIDTH, HEIGHT);
+    }
+
+    // Floating +10 indicator.
+    if (hitTextTimer > 0) {
+        const progress = 1 - (hitTextTimer / 0.55);
+        const alpha = Math.min(1, hitTextTimer / 0.15);
+        const floatUp = progress * 25;
+
+        ctx.save();
+
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "#5fffd2";
+        ctx.font = "bold 17px Courier New";
+        ctx.textAlign = "center";
+        ctx.shadowColor = "#00ffcc";
+        ctx.shadowBlur = 8;
+
+        ctx.fillText(
+            "+10",
+            WIDTH / 2,
+            HEIGHT / 2 - 30 - floatUp
+        );
+
+        ctx.restore();
+    }
+}
+
+// ==========================================
+// 20. RENDER GAME
+// ==========================================
+
+function renderGame() {
+    ctx.save();
+
+    // Apply a short screen shake after a successful hit.
+    if (hitShakeTimer > 0) {
+        const shakeStrength = (hitShakeTimer / 0.18) * 5;
+
+        const shakeX = (Math.random() - 0.5) * shakeStrength * 2;
+        const shakeY = (Math.random() - 0.5) * shakeStrength * 2;
+
+        ctx.translate(shakeX, shakeY);
+    }
+
+    drawEnvironment();
+
+    const visibleDrones = drones
+        .filter(d => d.alive)
+        .sort((a, b) => {
+            const distA = Math.hypot(
+                a.x - player.x,
+                a.y - player.y
+            );
+
+            const distB = Math.hypot(
+                b.x - player.x,
+                b.y - player.y
+            );
+
+            return distB - distA;
+        });
+
+    for (const drone of visibleDrones) {
+        drawDrone(drone);
+    }
+
+    drawHUD();
+    drawScreenEffects();
+    drawHitFeedback();
+
+    ctx.restore();
+}
+
+// ==========================================
+// 21. MAIN GAME LOOP
+// ==========================================
+
+function gameLoop(timestamp) {
+    requestAnimationFrame(gameLoop);
+
+    if (gameState !== "playing") return;
+
+    if (document.pointerLockElement !== canvas) {
+        return;
+    }
+
+    const deltaTime = Math.min(
+        (timestamp - lastTime) / 1000 || 0,
+        0.05
+    );
+
+    lastTime = timestamp;
+
+    updatePlayer(deltaTime);
+    updateDrones(deltaTime);
+    updateBattery(deltaTime);
+
+    if (gameState !== "playing") return;
+
+    updateTimer(deltaTime);
+
+    if (gameState !== "playing") return;
+
+    if (muzzleFlash > 0) {
+        muzzleFlash -= deltaTime;
+    }
+
+    updateHitFeedback(deltaTime);
+
+    renderGame();
+}
+
+// ==========================================
+// 22. END GAME
+// ==========================================
+
+function endGame(result, reason) {
+    if (gameState !== "playing") return;
+
+    gameState = "finished";
+
+    playGameOverSound();
+
+    if (document.pointerLockElement === canvas) {
+        document.exitPointerLock();
+    }
+
+    if (result === "victory") {
+        resultTitle.textContent = "VICTORY!";
+        resultTitle.style.color = "#5fffd2";
+
+        resultSubtitle.textContent = "MISSION COMPLETE";
+        resultReason.style.color = "#5fffd2";
+
+    } else {
+        resultTitle.textContent = "GAME OVER";
+        resultTitle.style.color = "#ff6969";
+
+        resultSubtitle.textContent = "MISSION FAILED";
+        resultReason.style.color = "#ff8585";
+    }
+
+    resultReason.textContent = reason;
+
+    resultDetails.innerHTML = `
+        <div>
+            <span class="result-label">DRONES ELIMINATED:</span>
+            ${eliminatedDrones}/8
+        </div>
+
+        <div>
+            <span class="result-label">REMAINING BATTERY:</span>
+            ${battery}%
+        </div>
+
+        <div>
+            <span class="result-label">ELAPSED TIME:</span>
+            ${formatElapsedTime(elapsedTime)}
+        </div>
+    `;
+
+    pauseMessage.style.display = "none";
+    resultScreen.style.display = "flex";
+}
+
+// ==========================================
+// 23. START AND RESTART GAME
+// ==========================================
+
+function resetGame() {
+    initializeAudio();
+
+    player.x = 1.5;
+    player.y = 1.5;
+    player.angle = 0;
+
+    createDrones();
+
+    battery = STARTING_BATTERY;
+    timeRemaining = ROUND_DURATION;
+
+    eliminatedDrones = 0;
+
+    elapsedTime = 0;
+    damageCooldown = 0;
+    muzzleFlash = 0;
+
+    // Reset hit feedback.
+    hitFlashTimer = 0;
+    hitTextTimer = 0;
+    hitShakeTimer = 0;
+
+    for (const key in keys) {
+        keys[key] = false;
+    }
+
+    gameState = "playing";
+    gameStarted = true;
+
+    startScreen.style.display = "none";
+    resultScreen.style.display = "none";
+    pauseMessage.style.display = "none";
+
+    lastTime = performance.now();
+
+    canvas.requestPointerLock();
+}
+
+startButton.addEventListener("click", () => {
+    resetGame();
+});
+
+restartButton.addEventListener("click", () => {
+    resetGame();
+});
+
+// ==========================================
+// 24. KEYBOARD CONTROLS
+// ==========================================
+
+document.addEventListener("keydown", event => {
+    const key = event.key.toLowerCase();
+
+    keys[key] = true;
+
+    if (
+        ["w", "a", "s", "d", "arrowup", "arrowdown"].includes(key)
+    ) {
+        event.preventDefault();
+    }
+});
+
+document.addEventListener("keyup", event => {
+    keys[event.key.toLowerCase()] = false;
+});
+
+window.addEventListener("blur", () => {
+    for (const key in keys) {
+        keys[key] = false;
+    }
+});
+
+// ==========================================
+// 25. MOUSE CONTROLS
+// ==========================================
+
+document.addEventListener("mousemove", event => {
+    if (
+        gameState === "playing" &&
+        document.pointerLockElement === canvas
+    ) {
+        player.angle += event.movementX * mouseSensitivity;
+    }
+});
+
+canvas.addEventListener("mousedown", event => {
+    if (event.button === 0) {
+        shoot();
+    }
+});
+
+canvas.addEventListener("contextmenu", event => {
+    event.preventDefault();
+});
+
+// ==========================================
+// 26. POINTER LOCK AND PAUSE
+// ==========================================
+
+canvas.addEventListener("click", () => {
+    if (
+        gameState === "playing" &&
+        document.pointerLockElement !== canvas
+    ) {
+        canvas.requestPointerLock();
+    }
+});
+
+document.addEventListener("pointerlockchange", () => {
+    const isLocked = document.pointerLockElement === canvas;
+
+    pauseMessage.style.display =
+        gameState === "playing" && !isLocked
+            ? "flex"
+            : "none";
+
+    if (isLocked && gameState === "playing") {
+        lastTime = performance.now();
+    } else {
+        for (const key in keys) {
+            keys[key] = false;
+        }
+    }
+});
+
+// ==========================================
+// 27. INITIALIZE
+// ==========================================
+
+function initializeGame() {
+    player.x = 1.5;
+    player.y = 1.5;
+    player.angle = 0;
+
+    createDrones();
+
+    battery = STARTING_BATTERY;
+    timeRemaining = ROUND_DURATION;
+
+    eliminatedDrones = 0;
+    elapsedTime = 0;
+    damageCooldown = 0;
+
+    hitFlashTimer = 0;
+    hitTextTimer = 0;
+    hitShakeTimer = 0;
+
+    gameState = "start";
+    gameStarted = false;
+}
+
+initializeGame();
+
+requestAnimationFrame(gameLoop);
+
+</script>
+
+</body>
+</html>
